@@ -32,6 +32,13 @@ import * as crypto from 'crypto';
  * • plain base64 ─ pre-AES MVP placeholder. decrypt() rejects with a
  *   descriptive error pointing operators at scripts/migrate-secrets.ts.
  *
+ * Verified for #834: decrypt() accepts v1, v2, and legacy unprefixed
+ * ciphertexts, but rejects plain base64 rows with an error directing
+ * operators to `src/scripts/migrate-secrets.ts`. Operators can identify
+ * remaining legacy rows using `npm run audit:secrets` against an extracted
+ * ciphertext set (e.g. `SELECT "secretKeyEncrypted" FROM accounts`), which is
+ * the recommended way to determine when the legacy branches can be removed.
+ *
  * Key requirements:
  * - Must be a 32-byte value provided as a 64-character hex string
  * - Sourced from ENCRYPTION_KEY environment variable (or the KMS data key)
