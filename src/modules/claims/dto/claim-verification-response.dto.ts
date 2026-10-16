@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Response shape for `POST /claims/verify`.
+ *
+ * Verified for #858: this is an explicit allow-list DTO. It declares only the
+ * fields below (`valid`, `accountId`, `amount`, `asset`, `expiresAt`) and is
+ * constructed field-by-field in `TokenVerificationProvider`, so neither the
+ * raw claim token nor any account secret can leak through this response shape
+ * even if the underlying `Account` entity gains new sensitive columns.
+ */
 export class ClaimVerificationResponseDto {
   @ApiProperty({
     example: true,
