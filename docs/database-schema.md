@@ -308,6 +308,12 @@ triggers this FK and existing claims remain intact and queryable. `CASCADE`
 only fires on an actual (hard) `DELETE` of an `accounts` row, at which point
 its claim records are removed with it rather than being orphaned.
 
+> Verified for #859: the FK `FK_claims_accountId` from `claims.accountId` to
+> `accounts.id` uses `onDelete: 'CASCADE'` (see
+> `src/modules/claims/entities/claim.entity.ts`), which matches the migration
+> and the behavioral contract above — soft-delete (`deletedAt`) never causes
+> cascading removal.
+
 ### Account status state diagram (#761)
 
 ```mermaid
