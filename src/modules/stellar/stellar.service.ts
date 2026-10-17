@@ -63,6 +63,11 @@ export class StellarService {
   /**
    * Converts a seconds-based expiry duration to a Stellar ledger sequence number.
    * Adds a small buffer (10 ledgers) to account for submission latency.
+   *
+   * Expiry split: the contract enforces expiry on-chain via this ledger value
+   * (authoritative). The DB-side `expiresAt` (computed in AccountsService from the
+   * same `expiresIn`) is deliberately not passed here; it only drives the
+   * SchedulerService sweep that triggers `expireAccount()` and updates DB status.
    */
   async toExpiryLedger(expiresInSeconds: number): Promise<number> {
     const currentLedger = await this.getCurrentLedger();

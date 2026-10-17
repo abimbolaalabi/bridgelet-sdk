@@ -35,11 +35,22 @@ The following services/imports are currently **commented out** to allow `npm run
 
 1. Search the codebase for comments containing `TEMPORARY:` to locate all commented-out code that needs restoration..
 
-2. **Ledger Expiry Conversion**
-   - `CreateAccountDto.expiresIn` (seconds) is not yet converted to
-     `expiry_ledger` (u32 ledger sequence) required by the contract
-   - `expiresAt` Date is currently unused in `StellarService`
-   - Conversion formula: `current_ledger + (expiresIn / 5)`
+2. **Ledger Expiry Conversion** (resolved)
+   - `CreateAccountDto.expiresIn` (seconds) is converted to the contract's `expiry_ledger`
+     (u32) by `StellarService.toExpiryLedger()`:
+     `current_ledger + ceil(expiresIn / 5) + EXPIRY_BUFFER_LEDGERS`
+   - `expiresAt` (Date) is intentionally **not** passed to `StellarService`. Expiry
+     responsibility is split as follows:
+     - **Contract-side (authoritative):** `expiry_ledger` is set at `initialize()` and
+       enforced on-chain (`AccountExpired` on late payment/sweep; `expire()` rejects
+       with `NotExpired` before the ledger is reached).
+     - **DB-side:** `expiresAt` is derived in `AccountsService` from the same
+       `expiresIn` and drives the `SchedulerService` sweep, which finds due accounts,
+       calls `StellarService.expireAccount()`, then marks them `EXPIRED`. It is also
+       used by claim-token and API expiry checks.
+     - Because the on-chain ledger includes a small buffer, the contract may expire
+       slightly after `expiresAt`; `expireAccount()` skips if the expiry ledger has
+       not yet been reached, and the scheduler retries on a later run.
 3. **Sweep Authorization Signature** (`src/modules/sweeps/providers/contract.provider.ts`)
    - **Current:** `generateAuthSignature()` produces a fake 64-byte stub signature
    - **Works because:** `EphemeralAccount.verify_sweep_authorization()` in `bridgelet-core`
