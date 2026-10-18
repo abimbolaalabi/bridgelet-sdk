@@ -1,16 +1,17 @@
 # Future Feature: Per-Integrator Auth Scoping
 
-> **Placement (issue #697):** this is forward-looking architecture, not
-> module-local documentation, so it lives here in `docs/` rather than inside
-> `src/modules/accounts/`. Track implementation of the design below as its
-> own issue when work on it starts.
->
-> Verified for #849: this document already lives in `docs/` (not inside the
-> accounts module) and its status section tracks concrete implementation
-> progress (issue #825), so it is linked to a plan rather than left as
-> module-local orphan documentation.
+> **Placement and tracking (issue #922):** this is forward-looking
+> architecture, not module-local documentation, so it lives here in `docs/`
+> rather than inside `src/modules/accounts/`. Issue
+> [#922](https://github.com/bridgelet-org/bridgelet-sdk/issues/922) tracks
+> this document, and the [implementation plan](#implementation-plan-tracked-by-922)
+> below breaks the remaining work into concrete, independently reviewable
+> steps. The part already shipped (sender-scoped JWT reads and writes) is
+> tracked by issue
+> [#825](https://github.com/bridgelet-org/bridgelet-sdk/issues/825).
 
-**Status:** Partially implemented (issue #825). `JwtAuthGuard` now reads two
+**Status:** Partially implemented (issue
+[#825](https://github.com/bridgelet-org/bridgelet-sdk/issues/825)). `JwtAuthGuard` now reads two
 optional claims:
 
 - `scope`: `"admin"` or `"sender"`. **A token with no `scope` claim is treated
@@ -29,7 +30,8 @@ out-of-band.
 
 What is still **not** implemented: an admin-only endpoint/CLI to mint these
 scoped tokens, per-integrator revocation for JWT-scoped callers, and scoped
-permissions beyond "own accounts only". See [Remaining work](#remaining-work).
+permissions beyond "own accounts only". See the
+[implementation plan](#implementation-plan-tracked-by-922).
 
 ## The gap
 
@@ -104,14 +106,32 @@ CREATE TABLE integrators (
 - Key rotation UI/endpoint (manual DB update is fine to start)
 - Scoped permissions beyond "own accounts only" (e.g. read-only keys)
 
-## Remaining work
+## Implementation plan (tracked by #922)
 
-- **Token minting.** Nothing in this repo mints scoped JWTs yet; they are
-  issued out-of-band with the same `JWT_SECRET` as API tokens. A protected
-  admin endpoint or CLI for minting (`scope`, `senderAddress`, expiry) is the
-  natural follow-up.
-- **Revocation.** A scoped JWT cannot be revoked before it expires the way an
-  API-key row can (Option B), so keep expiries short if revocation matters.
-- **Senders created via `metadata`.** `senderAddress` is a first-class column
-  now; any integration that was smuggling the wallet address into `metadata`
-  should migrate to the column.
+The sender-scoped read/write path shipped in #825. The rest of Option A is
+still open; each item below is self-contained so it can be picked up without
+waiting for the others.
+
+- [ ] **Mint scoped JWTs in a supported way.** Nothing in this repo mints
+      `scope` / `senderAddress` tokens yet; they are issued out-of-band with
+      the same `JWT_SECRET` as API tokens. Add a protected admin endpoint or
+      CLI that takes `scope`, `senderAddress` (required for `sender`), and an
+      expiry, then returns the signed token. A `sender` token must not be able
+      to mint another token. Acceptance: tests cover minting as admin, minting
+      as sender (rejected), and a minted sender token reading only its own
+      accounts. Touch points: a new admin controller, `docs/api-reference.md`.
+- [ ] **Per-integrator revocation.** A scoped JWT cannot be revoked before it
+      expires the way an Option B API-key row can. Either keep expiries short
+      and document the operational limit, or add a denylist / token-version
+      claim checked by `JwtAuthGuard`. Acceptance: a revoked token is rejected
+      on the next request, with tests.
+- [ ] **Scoped permissions beyond "own accounts only".** A `sender` token can
+      currently create and read its own accounts but has no read-only mode. Add
+      explicit scopes (for example `sender:read`) before integrators need them.
+      Acceptance: each scope is enforced at the guard/service boundary and
+      documented in `docs/api-reference.md`.
+- [ ] **Senders created via `metadata`.** `senderAddress` is a first-class
+      column now (see the `AddSenderAddressToAccountsTable` migration); any
+      integration that was smuggling the wallet address into `metadata` should
+      migrate to the column. Acceptance: the docs call out the column and
+      `metadata` is no longer the source of truth for the sender.
