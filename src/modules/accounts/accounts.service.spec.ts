@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { IsNull } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
@@ -297,6 +298,21 @@ describe('AccountsService', () => {
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    // #923: soft-deleted rows must 404 on GET /accounts/:id, matching
+    // findAll(). TypeORM appends `deletedAt IS NULL` to the query, so the
+    // repository returns null for a soft-deleted id.
+    it('excludes soft-deleted accounts from findOne (#923)', async () => {
+      mockRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne('soft-deleted-id')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'soft-deleted-id', deletedAt: IsNull() },
+      });
     });
 
     it('returns null claimUrl when claimTokenHash is absent', async () => {

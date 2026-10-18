@@ -287,8 +287,8 @@ export class AccountsService {
     caller: AuthenticatedCaller = ADMIN_CALLER,
   ): Promise<AccountResponseDto> {
     // Soft-deleted accounts are excluded so GET /accounts/:id 404s for them,
-    // matching findAll(). Verified for #698 (duplicate of the already-resolved
-    // #637, fixed in PR #771).
+    // matching findAll(). Fixed in PR #771 for #637 (re-confirmed #698); the
+    // regression test for #923 pins this deletedAt filter.
     const account = await this.accountsRepository.findOne({
       where: { id, deletedAt: IsNull() },
     });
