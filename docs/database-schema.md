@@ -31,7 +31,9 @@ The current schema is created entirely through the migrations in `src/database/m
 > logic/caller error.
 
 State transitions driven by `AccountsService`, `ClaimRedemptionProvider`,
-`PaymentMonitorService`, `PaymentMonitorProvider` and `SchedulerService`:
+`PaymentMonitorService`, `PaymentMonitorProvider` and `SchedulerService`
+(a Mermaid state-machine view is in
+[Account status state diagram](#account-status-state-diagram-761)):
 
 ```
                     INITIALIZING
@@ -315,6 +317,10 @@ its claim records are removed with it rather than being orphaned.
 > cascading removal.
 
 ### Account status state diagram (#761)
+
+> Verified for #925 (duplicate of the already-resolved #761, fixed in PR #903):
+> the diagram below covers every edge in `ACCOUNT_STATUS_TRANSITIONS`, and the
+> three terminal states have no outgoing edges.
 
 ```mermaid
 stateDiagram-v2
