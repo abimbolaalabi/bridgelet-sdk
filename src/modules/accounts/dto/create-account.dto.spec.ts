@@ -186,7 +186,9 @@ describe('CreateAccountDto — asset_issuer', () => {
 });
 
 // ─── asset_code / asset_issuer combinations ────────────────────────────────
-// Verified for #699 (duplicate of the already-resolved #638, fixed in PR #771).
+// Verified for #924 (duplicate of the already-resolved #638/#699, fixed in
+// PR #771). These are the four exhaustive presence combinations for the two
+// optional fields.
 // asset_issuer's @ValidateIf only requires it when asset_code is set, so:
 // - asset_code alone correctly fails validation (asset_issuer required) —
 //   AccountsService.create() would otherwise fall back to `asset_code` as a
@@ -195,6 +197,13 @@ describe('CreateAccountDto — asset_issuer', () => {
 //   AccountsService.create() then falls back to `asset_code ?? 'native'`,
 //   silently dropping the issuer entirely.
 describe('CreateAccountDto — asset_code/asset_issuer combination', () => {
+  it('accepts both asset_code and asset_issuer when they are valid', async () => {
+    const errors = await errorsFor({});
+
+    expect(errors).not.toContain('asset_code');
+    expect(errors).not.toContain('asset_issuer');
+  });
+
   it('does not flag asset_issuer when asset_code is missing (silently dropped later)', async () => {
     const errors = await errorsFor({
       asset_code: undefined,
@@ -211,5 +220,15 @@ describe('CreateAccountDto — asset_code/asset_issuer combination', () => {
     });
     expect(errors).not.toContain('asset_code');
     expect(errors).toContain('asset_issuer');
+  });
+
+  it('accepts neither field, falling back to native in the service', async () => {
+    const errors = await errorsFor({
+      asset_code: undefined,
+      asset_issuer: undefined,
+    });
+
+    expect(errors).not.toContain('asset_code');
+    expect(errors).not.toContain('asset_issuer');
   });
 });
